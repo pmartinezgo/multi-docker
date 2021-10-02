@@ -1,0 +1,37 @@
+language: node_js
+node_js:
+  - "12"
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t solamnia/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true solamnia/react-test npm test
+
+after_success:
+  - docker build -t solamnia/multi-client ./client 
+  - docker build -t solamnia/multi-nginx ./nginx 
+  - docker build -t solamnia/multi-server ./server 
+  - docker build -t solamnia/multi-worker ./worker 
+  # Log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push solamnia/multi-client
+  - docker push solamnia/multi-nginx
+  - docker push solamnia/multi-server
+  - docker push solamnia/multi-worker
+
+#deploy:
+#  provider: elasticbeanstalk
+#  region: "us-east-2"
+#  app: "docker-react"
+#  env: "Dockerreact-env"
+#  bucket_name: "elasticbeanstalk-us-east-2-688013810324"
+#  bucket_path: "docker-react"
+#  on:
+#    branch: master
+#  access_key_id: $AWS_ACCESS_KEY
+#  secret_access_key: $AWS_SECRET_KEY
